@@ -5,6 +5,7 @@
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
+from sparsification import sparsetopSGD
 
 
 class DatasetSplit(Dataset):
@@ -63,6 +64,8 @@ class LocalUpdate(object):
         elif self.args.optimizer == 'adam':
             optimizer = torch.optim.Adam(model.parameters(), lr=self.args.lr,
                                          weight_decay=1e-4)
+        elif self.args.optimizer == 'sparsetopk':
+            optimizer = sparsetopSGD(model.parameters(), lr=self.args.lr, topk=0.01)
 
         for iter in range(self.args.local_ep):
             batch_loss = []

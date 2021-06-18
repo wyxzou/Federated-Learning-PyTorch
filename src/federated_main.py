@@ -28,9 +28,10 @@ if __name__ == '__main__':
 
     args = args_parser()
     exp_details(args)
-
-    if args.gpu_id:
-        torch.cuda.set_device(args.gpu_id)
+    
+    # print("current device: ", torch.cuda.current_device())
+    if args.gpu:
+        torch.cuda.set_device(int(args.gpu))
     device = 'cuda' if args.gpu else 'cpu'
 
     # load dataset and user groups
@@ -69,7 +70,7 @@ if __name__ == '__main__':
     train_loss, train_accuracy = [], []
     val_acc_list, net_list = [], []
     cv_loss, cv_acc = [], []
-    print_every = 2
+    print_every = 1
     val_loss_pre, counter = 0, 0
 
     for epoch in tqdm(range(args.epochs)):
@@ -121,8 +122,10 @@ if __name__ == '__main__':
     print("|---- Avg Train Accuracy: {:.2f}%".format(100*train_accuracy[-1]))
     print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
 
+    print(train_accuracy)
     # Saving the objects train_loss and train_accuracy:
-    file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
+    # /content/Federated-Learning-PyTorch/save/objects
+    file_name = '/content/Federated-Learning-PyTorch/save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
         format(args.dataset, args.model, args.epochs, args.frac, args.iid,
                args.local_ep, args.local_bs)
 
