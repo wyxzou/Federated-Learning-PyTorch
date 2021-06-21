@@ -65,7 +65,7 @@ class LocalUpdate(object):
             optimizer = torch.optim.Adam(model.parameters(), lr=self.args.lr,
                                          weight_decay=1e-4)
         elif self.args.optimizer == 'sparsetopk':
-            optimizer = sparsetopSGD(model.parameters(), lr=self.args.lr, topk=0.01)
+            optimizer = sparsetopSGD(model.parameters(), lr=self.args.lr, topk=self.args.topk)
 
         for iter in range(self.args.local_ep):
             batch_loss = []
