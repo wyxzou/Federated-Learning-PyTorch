@@ -16,8 +16,9 @@ from tensorboardX import SummaryWriter
 from options import args_parser
 from update import LocalUpdate, test_inference
 from models import MLP, CNNMnist, CNNFashion_Mnist, CNNCifar
-from utils import get_dataset, average_weights, exp_details
-
+from utils import get_dataset, average_weights, exp_details, \
+    subtract_weights, topk_weights, add_weights, initialize_memory, get_topk_value, get_weight_dimension
+from sparsification import sparsetopSGD
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -28,9 +29,9 @@ if __name__ == '__main__':
 
     args = args_parser()
     exp_details(args)
-
-    if args.gpu_id:
-        torch.cuda.set_device(args.gpu_id)
+    
+    if args.gpu:
+        torch.cuda.set_device(args.gpu)
     device = 'cuda' if args.gpu else 'cpu'
 
     # load dataset and user groups
@@ -72,24 +73,77 @@ if __name__ == '__main__':
     print_every = 2
     val_loss_pre, counter = 0, 0
 
+    previous_weights = copy.deepcopy(global_weights)
+    delta_memory = initialize_memory(global_weights)
+    gradient_size = get_weight_dimension(global_weights)
+    # print("gs: ", gradient_size)
+    k = int(gradient_size * args.topk)
+
+    m = max(int(args.frac * args.num_users), 1)
+    
+    # print("bidirectional: ", args.bidirectional)
+    local_models = []
+    optimizers = []
+
+    for i in range(m):
+        local_model = copy.deepcopy(global_model)
+        local_models.append(local_model)
+        if args.optimizer == 'sparsetopk':
+            optimizer = sparsetopSGD(local_model.parameters(), lr=args.lr, topk=args.topk)
+            optimizers.append(optimizer)
+        elif args.optimizer == 'sgd':
+            optimizer = torch.optim.SGD(local_model.parameters(), lr=args.lr, momentum=0.5)
+            optimizers.append(optimizer)
+        elif args.optimizer == 'adam':
+            optimizer = torch.optim.Adam(local_model.parameters(), lr=args.lr, weight_decay=1e-4)
+            optimizers.append(optimizer)
+
+
     for epoch in tqdm(range(args.epochs)):
         local_weights, local_losses = [], []
         print(f'\n | Global Training Round : {epoch+1} |\n')
 
         global_model.train()
-        m = max(int(args.frac * args.num_users), 1)
-        idxs_users = np.random.choice(range(args.num_users), m, replace=False)
+        for i in range(m):
+            local_models[i].load_state_dict(global_weights)
 
+        idxs_users = np.random.choice(range(args.num_users), m, replace=False)
+        # print("idxs_users", idxs_users)
         for idx in idxs_users:
             local_model = LocalUpdate(args=args, dataset=train_dataset,
                                       idxs=user_groups[idx], logger=logger)
-            w, loss = local_model.update_weights(
-                model=copy.deepcopy(global_model), global_round=epoch)
+            # w, loss = local_model.update_weights_with_memory(
+            #    model=copy.deepcopy(global_model), global_round=epoch, optimizer=optimizers[idx])
+            w, loss = local_model.update_weights_with_memory(
+                model=local_models[idx], global_round=epoch, optimizer=optimizers[idx])
             local_weights.append(copy.deepcopy(w))
             local_losses.append(copy.deepcopy(loss))
 
+
+        if args.bidirectional == 1 and args.optimizer == 'sparsetopk':
+            # update global weights
+            global_weights = average_weights(local_weights)
+
+            # print("global weights: ", global_weights.keys())
+            g = subtract_weights(previous_weights, global_weights)
+            corrected_weights = add_weights(g, delta_memory)
+
+            threshold = get_topk_value(corrected_weights, k)
+            # print("threshold", threshold)
+
+            topk = topk_weights(corrected_weights, threshold)
+
+            # print("corrected weights: ", corrected_weights.keys())
+            # print("topk weights: ", topk.keys())
+
+            delta_memory = subtract_weights(corrected_weights, topk)
+                
+            global_weights = subtract_weights(previous_weights, topk)
+
+
         # update global weights
         global_weights = average_weights(local_weights)
+        previous_weights = copy.deepcopy(global_weights)
 
         # update global weights
         global_model.load_state_dict(global_weights)
@@ -122,9 +176,9 @@ if __name__ == '__main__':
     print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
 
     # Saving the objects train_loss and train_accuracy:
-    file_name = '../save/objects/{}_{}_{}_C[{}]_iid[{}]_E[{}]_B[{}].pkl'.\
+    file_name = 'save/objects/{}_{}_EPOCH[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_DIR[{}]_NUM[{}].pkl'.\
         format(args.dataset, args.model, args.epochs, args.frac, args.iid,
-               args.local_ep, args.local_bs)
+               args.local_bs, args.optimizer, args.bidirectional, args.number)
 
     with open(file_name, 'wb') as f:
         pickle.dump([train_loss, train_accuracy], f)

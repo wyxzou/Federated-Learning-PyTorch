@@ -3,6 +3,7 @@
 # Python version: 3.6
 
 import copy
+import heapq
 import torch
 from torchvision import datasets, transforms
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
@@ -82,6 +83,79 @@ def average_weights(w):
             w_avg[key] += w[i][key]
         w_avg[key] = torch.div(w_avg[key], len(w))
     return w_avg
+
+
+def topk_weights(w, threshold):
+    """
+    Returns topk weights.
+    """
+    sparse_w = copy.deepcopy(w)
+
+    for key in sparse_w.keys():
+        # print("data type: ", sparse_w[key].dtype)
+        mask = (sparse_w[key] > threshold).float()
+        sparse_w[key] = torch.mul(mask, sparse_w[key])
+
+    return sparse_w
+
+
+def subtract_weights(w1, w2):
+    """
+    Returns topk weights.
+    """
+    sum_w = copy.deepcopy(w1)
+
+    for key in sum_w.keys():
+        if key in w2:
+            sum_w[key] -= w2[key]
+
+    return sum_w
+
+
+def add_weights(w1, w2):
+    """
+    Returns topk weights.
+    """
+    sum_w = copy.deepcopy(w1)
+
+    for key in sum_w.keys():
+        if key in w2:
+            sum_w[key] += w2[key]
+
+    return sum_w
+
+def initialize_memory(w):
+    """
+    Returns topk weights.
+    """
+    mem = copy.deepcopy(w)
+
+    for key in mem.keys():
+        mem[key] = 0
+
+    return mem
+
+
+def get_weight_dimension(w):
+    dim = 0
+    for key in w.keys():
+        dim += torch.numel(w[key])
+
+    return dim
+
+
+def get_topk_value(w, k):
+    w_copy = copy.deepcopy(w)
+
+    tensors = []
+    for key in w_copy.keys():
+        tensors.append(torch.flatten(w_copy[key]))    
+
+    combined_tensor = torch.cat(tensors)
+
+    topk_val = torch.topk(combined_tensor, k)[0]
+
+    return topk_val[len(topk_val) - 1].item()
 
 
 def exp_details(args):

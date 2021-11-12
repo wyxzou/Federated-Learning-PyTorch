@@ -24,6 +24,10 @@ def args_parser():
     parser.add_argument('--momentum', type=float, default=0.5,
                         help='SGD momentum (default: 0.5)')
 
+    parser.add_argument('--bidirectional', type=int, default=1,
+                        help='employ bidirectional compression')
+
+
     # model arguments
     parser.add_argument('--model', type=str, default='mlp', help='model name')
     parser.add_argument('--kernel_num', type=int, default=9,
@@ -60,5 +64,9 @@ def args_parser():
                         help='rounds of early stopping')
     parser.add_argument('--verbose', type=int, default=1, help='verbose')
     parser.add_argument('--seed', type=int, default=1, help='random seed')
+
+    parser.add_argument('--topk', type=float, default=0.001, help='sparsity')
+    parser.add_argument('--number', type=int, default=1, help='experiment number')
+
     args = parser.parse_args()
     return args
