@@ -1,7 +1,10 @@
 .DS_Store
 data/
 env/
-src/__pycache__/
-*.py[cod]
+save/
 
+src/__pycache__/
+
+*.py[cod]
+core.*
 *.out
