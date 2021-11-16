@@ -2,32 +2,12 @@
 # -*- coding: utf-8 -*-
 # Python version: 3.6
 
-import os
-import time
-import datetime
-
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import torch.optim as optim
 import torch.backends.cudnn as cudnn
 
-import torchvision
-import torchvision.transforms as transforms
-from torchvision.datasets import MNIST
-from torch.utils.data import DataLoader
-
-import torch.distributed as dist
 import torch.utils.data.distributed
-
-from torch import Tensor
-
-from torchvision import datasets, transforms
-
-
 from torch.optim import Optimizer
-import numpy as np
-
 
 class sparsetopSGD(Optimizer):
     def __init__(self, params, lr=0.1, topk=0.1, momentum=0, dampening=0,

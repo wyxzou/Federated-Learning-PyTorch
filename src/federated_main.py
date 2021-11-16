@@ -15,7 +15,7 @@ from tensorboardX import SummaryWriter
 
 from options import args_parser
 from update import LocalUpdate, test_inference
-from models import MLP, CNNMnist, CNNFashion_Mnist, CNNCifar
+from models import MLP, CNNMnist, CNNFashion_Mnist, CNNCifar, VGG
 from utils import get_dataset, average_weights, exp_details, \
     subtract_weights, topk_weights, add_weights, initialize_memory, get_topk_value, get_weight_dimension
 from sparsification import sparsetopSGD
@@ -55,6 +55,8 @@ if __name__ == '__main__':
             len_in *= x
             global_model = MLP(dim_in=len_in, dim_hidden=64,
                                dim_out=args.num_classes)
+    elif args.model ==  'vgg':
+        global_model = VGG('VGG19')
     else:
         exit('Error: unrecognized model')
 
@@ -67,7 +69,7 @@ if __name__ == '__main__':
     global_weights = global_model.state_dict()
 
     # Training
-    train_loss, train_accuracy = [], []
+    train_loss, test_losses, train_accuracy, test_accuracies = [], [], [], []
     val_acc_list, net_list = [], []
     cv_loss, cv_acc = [], []
     print_every = 2
@@ -76,7 +78,7 @@ if __name__ == '__main__':
     previous_weights = copy.deepcopy(global_weights)
     delta_memory = initialize_memory(global_weights)
     gradient_size = get_weight_dimension(global_weights)
-    # print("gs: ", gradient_size)
+    print("gradient size: ", gradient_size)
     k = int(gradient_size * args.topk)
 
     m = max(int(args.frac * args.num_users), 1)
@@ -153,13 +155,22 @@ if __name__ == '__main__':
 
         # Calculate avg training accuracy over all users at every epoch
         list_acc, list_loss = [], []
+        
         global_model.eval()
+        # Test inference after completion of training
+        test_acc, test_loss = test_inference(args, global_model, test_dataset)
+        
+
         for c in range(args.num_users):
             local_model = LocalUpdate(args=args, dataset=train_dataset,
                                       idxs=user_groups[idx], logger=logger)
             acc, loss = local_model.inference(model=global_model)
             list_acc.append(acc)
             list_loss.append(loss)
+
+        test_accuracies.append(test_acc)
+        test_losses.append(test_loss)
+
         train_accuracy.append(sum(list_acc)/len(list_acc))
 
         # print global training loss after every 'i' rounds
@@ -167,6 +178,7 @@ if __name__ == '__main__':
             print(f' \nAvg Training Stats after {epoch+1} global rounds:')
             print(f'Training Loss : {np.mean(np.array(train_loss))}')
             print('Train Accuracy: {:.2f}% \n'.format(100*train_accuracy[-1]))
+            print("Test Accuracy: {:.2f}%".format(100*test_acc))
 
     # Test inference after completion of training
     test_acc, test_loss = test_inference(args, global_model, test_dataset)
@@ -181,7 +193,7 @@ if __name__ == '__main__':
                args.local_bs, args.optimizer, args.bidirectional, args.number)
 
     with open(file_name, 'wb') as f:
-        pickle.dump([train_loss, train_accuracy], f)
+        pickle.dump([train_loss, train_accuracy, test_losses, test_accuracies], f)
 
     print('\n Total Run Time: {0:0.4f}'.format(time.time()-start_time))
 

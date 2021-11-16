@@ -4,6 +4,9 @@
 
 from torch import nn
 import torch.nn.functional as F
+from torchviz import make_dot
+
+
 
 
 class MLP(nn.Module):
@@ -66,6 +69,42 @@ class CNNFashion_Mnist(nn.Module):
         return out
 
 
+cfg = {
+    'VGG11': [64, 'M', 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    'VGG13': [64, 64, 'M', 128, 128, 'M', 256, 256, 'M', 512, 512, 'M', 512, 512, 'M'],
+    'VGG16': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 'M', 512, 512, 512, 'M', 512, 512, 512, 'M'],
+    'VGG19': [64, 64, 'M', 128, 128, 'M', 256, 256, 256, 256, 'M', 512, 512, 512, 512, 'M', 512, 512, 512, 512, 'M'],
+}
+
+
+class VGG(nn.Module):
+    def __init__(self, vgg_name):
+        super(VGG, self).__init__()
+        self.features = self._make_layers(cfg[vgg_name])
+        self.classifier = nn.Linear(512, 10)
+
+    def forward(self, x):
+        out = self.features(x)
+        out = out.view(out.size(0), -1)
+        out = self.classifier(out)
+        return out
+
+    def _make_layers(self, cfg):
+        layers = []
+        in_channels = 3
+        for x in cfg:
+            if x == 'M':
+                layers += [nn.MaxPool2d(kernel_size=2, stride=2)]
+            else:
+                layers += [nn.Conv2d(in_channels, x, kernel_size=3, padding=1),
+                           nn.BatchNorm2d(x),
+                           nn.ReLU(inplace=True)]
+                in_channels = x
+        layers += [nn.AvgPool2d(kernel_size=1, stride=1)]
+        return nn.Sequential(*layers)
+
+
+
 class CNNCifar(nn.Module):
     def __init__(self, args):
         super(CNNCifar, self).__init__()
@@ -84,6 +123,44 @@ class CNNCifar(nn.Module):
         x = F.relu(self.fc2(x))
         x = self.fc3(x)
         return F.log_softmax(x, dim=1)
+
+
+
+class FashionCNN(nn.Module):
+    def __init__(self):
+        super(FashionCNN, self).__init__()
+        
+        self.layer1 = nn.Sequential(
+            nn.Conv2d(in_channels=1, out_channels=32, kernel_size=3, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2, stride=2)
+        )
+        
+        self.layer2 = nn.Sequential(
+            nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.MaxPool2d(2)
+        )
+        
+        self.fc1 = nn.Linear(in_features=64*6*6, out_features=600)
+        self.drop = nn.Dropout2d(0.25)
+        self.fc2 = nn.Linear(in_features=600, out_features=120)
+        self.fc3 = nn.Linear(in_features=120, out_features=10)
+        
+    def forward(self, x):
+        out = self.layer1(x)
+        out = self.layer2(out)
+        out = out.view(out.size(0), -1)
+        out = self.fc1(out)
+        out = self.drop(out)
+        out = self.fc2(out)
+        out = self.fc3(out)
+        
+        return out
+
+
 
 class modelC(nn.Module):
     def __init__(self, input_size, n_classes=10, **kwargs):
@@ -118,3 +195,4 @@ class modelC(nn.Module):
         pool_out.squeeze_(-1)
         pool_out.squeeze_(-1)
         return pool_out
+
