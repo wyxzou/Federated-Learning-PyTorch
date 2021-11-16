@@ -4,6 +4,11 @@
 
 from torch import nn
 import torch.nn.functional as F
+<<<<<<< Updated upstream
+=======
+from torchviz import make_dot
+
+>>>>>>> Stashed changes
 
 class MLP(nn.Module):
     def __init__(self, dim_in, dim_hidden, dim_out):
