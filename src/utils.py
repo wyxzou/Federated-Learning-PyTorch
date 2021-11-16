@@ -17,7 +17,7 @@ def get_dataset(args):
     """
 
     if args.dataset == 'cifar':
-        data_dir = '../data/cifar/'
+        data_dir = './data/cifar/'
         apply_transform = transforms.Compose(
             [transforms.ToTensor(),
              transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
