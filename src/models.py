@@ -4,10 +4,6 @@
 
 from torch import nn
 import torch.nn.functional as F
-from torchviz import make_dot
-
-
-
 
 class MLP(nn.Module):
     def __init__(self, dim_in, dim_hidden, dim_out):
