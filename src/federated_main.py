@@ -11,6 +11,7 @@ import numpy as np
 from tqdm import tqdm
 
 import torch
+import models
 from tensorboardX import SummaryWriter
 
 from options import args_parser
@@ -56,7 +57,7 @@ if __name__ == '__main__':
             global_model = MLP(dim_in=len_in, dim_hidden=64,
                                dim_out=args.num_classes)
     elif args.model ==  'vgg':
-        global_model = VGG('VGG19')
+        global_model = models.__dict__['vgg16']()
     else:
         exit('Error: unrecognized model')
 
