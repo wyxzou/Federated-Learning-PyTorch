@@ -1,16 +1,16 @@
 #!/bin/sh
 
-REPEATS=3
+REPEATS=1
 MODEL=mlp
-IID=1
+IID=0
 BIDIRECTIONAL=1
 EPOCH=50
 OPTIMIZER=sparsetopk
 DATASET=mnist
-FRAC=1
+FRAC=0.01
 GPU=cuda:0
-USERS=1
-LOCAL_BS=64
+USERS=100
+LOCAL_BS=10
 
 for idx in $(seq 1 $REPEATS); do
 	python src/federated_main.py --model=$MODEL --local_ep=1 --local_bs=$LOCAL_BS --frac=$FRAC --num_users=$USERS --optimizer=$OPTIMIZER \

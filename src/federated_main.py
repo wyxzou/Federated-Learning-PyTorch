@@ -87,7 +87,7 @@ if __name__ == '__main__':
     local_models = []
     optimizers = []
 
-    for i in range(m):
+    for i in range(args.num_users):
         local_model = copy.deepcopy(global_model)
         local_models.append(local_model)
         if args.optimizer == 'sparsetopk':
