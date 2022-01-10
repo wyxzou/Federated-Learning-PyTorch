@@ -54,8 +54,9 @@ if __name__ == '__main__':
         len_in = 1
         for x in img_size:
             len_in *= x
-            global_model = MLP(dim_in=len_in, dim_hidden=64,
-                               dim_out=args.num_classes)
+        
+        global_model = MLP(dim_in=len_in, dim_hidden=64,
+                            dim_out=args.num_classes)
     elif args.model ==  'vgg':
         global_model = models.__dict__['vgg16']()
     else:
@@ -77,7 +78,7 @@ if __name__ == '__main__':
     val_loss_pre, counter = 0, 0
 
     previous_weights = copy.deepcopy(global_weights)
-    delta_memory = initialize_memory(global_weights)
+    # delta_memory = initialize_memory(global_weights)
     gradient_size = get_weight_dimension(global_weights)
     print("gradient size: ", gradient_size)
     k = int(gradient_size * args.topk)
@@ -95,72 +96,94 @@ if __name__ == '__main__':
             optimizer = sparsetopSGD(local_model.parameters(), lr=args.lr, topk=args.topk)
             optimizers.append(optimizer)
         elif args.optimizer == 'sgd':
-            optimizer = torch.optim.SGD(local_model.parameters(), lr=args.lr, momentum=0.5)
+            optimizer = torch.optim.SGD(local_model.parameters(), lr=args.lr, momentum=0)
             optimizers.append(optimizer)
         elif args.optimizer == 'adam':
             optimizer = torch.optim.Adam(local_model.parameters(), lr=args.lr, weight_decay=1e-4)
             optimizers.append(optimizer)
 
-
+    
     for epoch in tqdm(range(args.epochs)):
         local_weights, local_losses = [], []
         print(f'\n | Global Training Round : {epoch+1} |\n')
 
         global_model.train()
-        for i in range(m):
-            local_models[i].load_state_dict(global_weights)
-
         idxs_users = np.random.choice(range(args.num_users), m, replace=False)
+        
+        print("idxs_users: ", idxs_users)
+        batch_number = 0
+        local_updates = {}
+        worker_batch_size = []
+        # for idx in idxs_users:
+        # # for worker in range(args.num_users):
+        #     local_update = LocalUpdate(args=args, dataset=train_dataset,
+        #                                idxs=user_groups[idx], logger=logger)
+        #     print("idx and user group length: ", idx, len(user_groups[idx]))
+        #     local_updates[idx] = local_update
+        #     worker_batch_size.append(local_update.batches_per_epoch())
+
         # print("idxs_users", idxs_users)
+        # print("worker batch size: ", worker_batch_size)
+
+        # num_batches = min(worker_batch_size)
+        
+        # print("number of batches: ", num_batches)
+
+        # for i in range(num_batches):
+        for worker in range(args.num_users):
+            local_models[worker].load_state_dict(global_weights)
+
         for idx in idxs_users:
             local_model = LocalUpdate(args=args, dataset=train_dataset,
                                       idxs=user_groups[idx], logger=logger)
-            # w, loss = local_model.update_weights_with_memory(
-            #    model=copy.deepcopy(global_model), global_round=epoch, optimizer=optimizers[idx])
+            #w, loss = local_updates[idx].update_weights_per_batch(
+            #    model=local_models[idx], global_round=epoch, optimizer=optimizers[idx], batch_idx=i)
             w, loss = local_model.update_weights_with_memory(
                 model=local_models[idx], global_round=epoch, optimizer=optimizers[idx])
+
             local_weights.append(copy.deepcopy(w))
             local_losses.append(copy.deepcopy(loss))
 
-
-        if args.bidirectional == 1 and args.optimizer == 'sparsetopk':
-            # update global weights
-            global_weights = average_weights(local_weights)
-
-            # print("global weights: ", global_weights.keys())
-            g = subtract_weights(previous_weights, global_weights)
-            corrected_weights = add_weights(g, delta_memory)
-
-            threshold = get_topk_value(corrected_weights, k)
-            # print("threshold", threshold)
-
-            topk = topk_weights(corrected_weights, threshold)
-
-            # print("corrected weights: ", corrected_weights.keys())
-            # print("topk weights: ", topk.keys())
-
-            delta_memory = subtract_weights(corrected_weights, topk)
-                
-            global_weights = subtract_weights(previous_weights, topk)
-
-
-        # update global weights
         global_weights = average_weights(local_weights)
-        previous_weights = copy.deepcopy(global_weights)
 
-        # update global weights
+            # if args.bidirectional == 1 and args.optimizer == 'sparsetopk':
+            #     # print("global weights: ", global_weights.keys())
+            #     g = subtract_weights(previous_weights, global_weights)
+            #     corrected_weights = add_weights(g, delta_memory)
+
+            #     threshold = get_topk_value(corrected_weights, k)
+            #     # print("threshold", threshold)
+
+            #     topk = topk_weights(corrected_weights, threshold)
+
+            #     # print("corrected weights: ", corrected_weights.keys())
+            #     # print("topk weights: ", topk.keys())
+
+            #     delta_memory = subtract_weights(corrected_weights, topk)
+                    
+            #     global_weights = subtract_weights(previous_weights, topk)
+
+
+            # update global weights
+            
+            # previous_weights = copy.deepcopy(global_weights)
+
+            # update global weights
         global_model.load_state_dict(global_weights)
+
+
+        # for idx in idxs_users:
+        #    print("idx: ", idx, "processed labels", local_updates[idx].check_mnist_labels())
 
         loss_avg = sum(local_losses) / len(local_losses)
         train_loss.append(loss_avg)
 
         # Calculate avg training accuracy over all users at every epoch
         list_acc, list_loss = [], []
-        
+            
         global_model.eval()
         # Test inference after completion of training
         test_acc, test_loss = test_inference(args, global_model, test_dataset)
-        
 
         for c in range(args.num_users):
             local_model = LocalUpdate(args=args, dataset=train_dataset,
@@ -189,9 +212,9 @@ if __name__ == '__main__':
     print("|---- Test Accuracy: {:.2f}%".format(100*test_acc))
 
     # Saving the objects train_loss and train_accuracy:
-    file_name = 'save/objects/{}_{}_EPOCH[{}]_USERS[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_DIR[{}]_NUM[{}].pkl'.\
+    file_name = './save/inter_batch_communication/{}_{}_EPOCH[{}]_USERS[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_LR[{}]_DIR[{}]_NUM[{}].pkl'.\
         format(args.dataset, args.model, args.epochs, args.num_users, args.frac, args.iid,
-               args.local_bs, args.optimizer, args.bidirectional, args.number)
+               args.local_bs, args.optimizer, args.lr, args.bidirectional, args.number)
 
     with open(file_name, 'wb') as f:
         pickle.dump([train_loss, train_accuracy, test_losses, test_accuracies], f)

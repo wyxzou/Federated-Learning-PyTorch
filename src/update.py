@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 # Python version: 3.6
 
+import math
+
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
@@ -32,6 +34,14 @@ class LocalUpdate(object):
         self.device = 'cuda' if args.gpu else 'cpu'
         # Default criterion set to NLL loss function
         self.criterion = nn.NLLLoss().to(self.device)
+        self.num_labels = [0] * 10
+        self.iterable_trainloader = iter(self.trainloader)
+
+    def check_mnist_labels(self):
+        return self.num_labels
+
+    def batches_per_epoch(self):
+        return math.floor(len(self.trainloader.dataset) / self.args.local_bs)
 
     def train_val_test(self, dataset, idxs):
         """
@@ -113,6 +123,39 @@ class LocalUpdate(object):
 
         return model.state_dict(), sum(epoch_loss) / len(epoch_loss)
 
+
+    def update_weights_per_batch(self, model, global_round, optimizer, batch_idx):
+        model.train()
+
+        # epoch_loss = []
+        # batch_loss = []
+
+        images, labels = next(self.iterable_trainloader)
+        # print("label: ", labels)
+
+        batch_labels = labels.numpy()
+
+        for l in batch_labels:
+            self.num_labels[int(l)] += 1
+
+        images, labels = images.to(self.device), labels.to(self.device)
+        
+        model.zero_grad()
+        log_probs = model(images)
+        loss = self.criterion(log_probs, labels)
+        loss.backward()
+        optimizer.step()
+
+        # if self.args.verbose and (batch_idx % 10 == 0):
+        #     print('Epoch : {} | [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        #         global_round, batch_idx * len(images),
+        #         len(self.trainloader.dataset),
+        #         100. * batch_idx / len(self.trainloader), loss.item()))
+        self.logger.add_scalar('loss', loss.item())
+        # batch_loss.append(loss.item())
+        # epoch_loss.append(sum(batch_loss)/len(batch_loss))
+
+        return model.state_dict(), loss.item() # sum(epoch_loss) / len(epoch_loss)
 
     def inference(self, model):
         """ Returns the inference accuracy and loss.
