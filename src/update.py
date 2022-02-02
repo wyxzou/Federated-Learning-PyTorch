@@ -22,6 +22,10 @@ class DatasetSplit(Dataset):
 
     def __getitem__(self, item):
         image, label = self.dataset[self.idxs[item]]
+        image_tensor = torch.tensor(image)
+        label_tensor = torch.tensor(label)
+        print("image type: ", image_tensor.dtype)
+        print("label type: ", label_tensor.dtype)
         return torch.tensor(image), torch.tensor(label)
 
 
@@ -29,16 +33,24 @@ class LocalUpdate(object):
     def __init__(self, args, dataset, idxs, logger):
         self.args = args
         self.logger = logger
+        print("train val test started")
         self.trainloader, self.validloader, self.testloader = self.train_val_test(
             dataset, list(idxs))
+        print("train val test complete")
         self.device = 'cuda' if args.gpu else 'cpu'
         # Default criterion set to NLL loss function
+        # if self.args.model == 'vgg' or self.args.model == 'cnn': 
+            # self.criterion = nn.NLLLoss().to(self.device)
+        #    self.criterion = nn.CrossEntropyLoss().to(self.device)
+        # else:
         self.criterion = nn.NLLLoss().to(self.device)
+
         self.num_labels = [0] * 10
         self.iterable_trainloader = iter(self.trainloader)
+        print("Finished initialization")
 
-    def check_mnist_labels(self):
-        return self.num_labels
+    # def check_mnist_labels(self):
+    #    return self.num_labels
 
     def batches_per_epoch(self):
         return math.floor(len(self.trainloader.dataset) / self.args.local_bs)
@@ -49,6 +61,7 @@ class LocalUpdate(object):
         and user indexes.
         """
         # split indexes for train, validation, and test (80, 10, 10)
+        print("Starting train val test")
         idxs_train = idxs[:int(0.8*len(idxs))]
         idxs_val = idxs[int(0.8*len(idxs)):int(0.9*len(idxs))]
         idxs_test = idxs[int(0.9*len(idxs)):]
@@ -59,6 +72,7 @@ class LocalUpdate(object):
                                  batch_size=int(len(idxs_val)/10), shuffle=False)
         testloader = DataLoader(DatasetSplit(dataset, idxs_test),
                                 batch_size=int(len(idxs_test)/10), shuffle=False)
+        print("Data Loader complete")
         return trainloader, validloader, testloader
 
     def update_weights(self, model, global_round):
@@ -104,6 +118,12 @@ class LocalUpdate(object):
         batch_loss = []
 
         for batch_idx, (images, labels) in enumerate(self.trainloader):
+            
+            # record labels for analysis
+            # batch_labels = labels.numpy()
+            # for l in batch_labels:
+            #    self.num_labels[int(l)] += 1
+
             images, labels = images.to(self.device), labels.to(self.device)
 
             model.zero_grad()
@@ -133,16 +153,16 @@ class LocalUpdate(object):
         images, labels = next(self.iterable_trainloader)
         # print("label: ", labels)
 
-        batch_labels = labels.numpy()
+        # batch_labels = labels.numpy()
 
-        for l in batch_labels:
-            self.num_labels[int(l)] += 1
+        # for l in batch_labels:
+        #    self.num_labels[int(l)] += 1
 
         images, labels = images.to(self.device), labels.to(self.device)
         
         model.zero_grad()
         log_probs = model(images)
-        loss = self.criterion(log_probs, labels)
+        loss = self.criterion(log_probs, labels.long())
         loss.backward()
         optimizer.step()
 
@@ -169,7 +189,7 @@ class LocalUpdate(object):
 
             # Inference
             outputs = model(images)
-            batch_loss = self.criterion(outputs, labels)
+            batch_loss = self.criterion(outputs, labels.long())
             loss += batch_loss.item()
 
             # Prediction
@@ -190,23 +210,30 @@ def test_inference(args, model, test_dataset):
     loss, total, correct = 0.0, 0.0, 0.0
 
     device = 'cuda' if args.gpu else 'cpu'
+
+    # if args.model == 'vgg' or args.model == 'cnn':
+        # criterion = nn.NLLLoss().to(device)
+    #    criterion = nn.CrossEntropyLoss().to(device)
+    # else:
     criterion = nn.NLLLoss().to(device)
+
     testloader = DataLoader(test_dataset, batch_size=128,
                             shuffle=False)
 
-    for batch_idx, (images, labels) in enumerate(testloader):
-        images, labels = images.to(device), labels.to(device)
+    with torch.no_grad():
+        for batch_idx, (images, labels) in enumerate(testloader):
+            images, labels = images.to(device), labels.to(device)
 
-        # Inference
-        outputs = model(images)
-        batch_loss = criterion(outputs, labels)
-        loss += batch_loss.item()
+            # Inference
+            outputs = model(images)
+            batch_loss = criterion(outputs, labels.long())
+            loss += batch_loss.item()
 
-        # Prediction
-        _, pred_labels = torch.max(outputs, 1)
-        pred_labels = pred_labels.view(-1)
-        correct += torch.sum(torch.eq(pred_labels, labels)).item()
-        total += len(labels)
+            # Prediction
+            _, pred_labels = torch.max(outputs, 1)
+            pred_labels = pred_labels.view(-1)
+            correct += torch.sum(torch.eq(pred_labels, labels)).item()
+            total += len(labels)
 
     accuracy = correct/total
     return accuracy, loss

@@ -66,6 +66,7 @@ def args_parser():
     parser.add_argument('--seed', type=int, default=1, help='random seed')
 
     parser.add_argument('--topk', type=float, default=0.001, help='sparsity')
+    parser.add_argument('--topk_d', type=float, default=0.001, help='downstream sparsity')
     parser.add_argument('--number', type=int, default=1, help='experiment number')
 
     args = parser.parse_args()

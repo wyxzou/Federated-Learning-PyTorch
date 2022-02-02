@@ -15,18 +15,27 @@ def get_dataset(args):
     the keys are the user index and the values are the corresponding data for
     each of those users.
     """
+    home = "/home/wyzou/Federated-Learning-PyTorch"
 
     if args.dataset == 'cifar':
-        data_dir = './data/cifar/'
-        apply_transform = transforms.Compose(
-            [transforms.ToTensor(),
-             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+        data_dir = home + '/data/cifar/'
+        transform_train = transforms.Compose([
+            transforms.RandomCrop(32, padding=4),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+
+        transform_test = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
 
         train_dataset = datasets.CIFAR10(data_dir, train=True, download=True,
-                                       transform=apply_transform)
+                                       transform=transform_train)
 
         test_dataset = datasets.CIFAR10(data_dir, train=False, download=True,
-                                      transform=apply_transform)
+                                      transform=transform_test)
 
         # sample training data amongst users
         if args.iid:
@@ -43,19 +52,30 @@ def get_dataset(args):
 
     elif args.dataset == 'mnist' or 'fmnist':
         if args.dataset == 'mnist':
-            data_dir = './data/mnist/'
+            data_dir = home + '/data/mnist/'
+
+            apply_transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))])
+
+            train_dataset = datasets.MNIST(data_dir, train=True, download=False,
+                                        transform=apply_transform)
+
+            test_dataset = datasets.MNIST(data_dir, train=False, download=False,
+                                        transform=apply_transform)
         else:
-            data_dir = './data/fmnist/'
+            data_dir = home + '/data/fmnist/'
 
-        apply_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))])
+            apply_transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.Normalize((0.1307,), (0.3081,))])
 
-        train_dataset = datasets.MNIST(data_dir, train=True, download=False,
-                                       transform=apply_transform)
+            train_dataset = datasets.FashionMNIST(data_dir, train=True, download=False,
+                                        transform=apply_transform)
 
-        test_dataset = datasets.MNIST(data_dir, train=False, download=False,
-                                      transform=apply_transform)
+            test_dataset = datasets.FashionMNIST(data_dir, train=False, download=False,
+                                        transform=apply_transform)
+
 
         # sample training data amongst users
         if args.iid:
