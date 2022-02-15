@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 # Python version: 3.6
 
+import pdb
 import torch
 import torch.nn.functional as F
 import torch.backends.cudnn as cudnn
@@ -38,9 +39,9 @@ class sparsetopSGD(Optimizer):
                 param_state['memory'] = torch.zeros_like(p.data)
                 gradient_size += torch.numel(p.data)
 
-        self.topk_gradient_with_error = torch.zeros(gradient_size)
-        self.gradient_with_error = torch.zeros(gradient_size)
-        self.raw_gradient = torch.zeros(gradient_size)
+        self.gradient_after_topk = torch.zeros(gradient_size)
+        self.gradient_before_topk = torch.zeros(gradient_size)
+        self.gradient_without_error = torch.zeros(gradient_size)
 
     def __setstate__(self, state):
         super(sparsetopSGD, self).__setstate__(state)
@@ -67,12 +68,20 @@ class sparsetopSGD(Optimizer):
             lr = group['lr']
             topk = group['topk']
 
+            # lists used in the actual calculation of gradients
             param_size = []
             gradient_shape = []
             gradients = []
-            gradients_error_not_adjusted = []
 
-            for p in group['params']:
+
+            gradients_without_error = []
+
+            # pdb.set_trace()
+            # print("parameter keys")
+            # print(group['params'])
+
+            for p in group['params']:   
+
                 param_state = self.state[p]
                 if p.grad is None:
                     continue
@@ -80,13 +89,18 @@ class sparsetopSGD(Optimizer):
                 d_p = p.grad
                 corrected_gradient = group['lr'] * d_p
 
-                # gradients_error_not_adjusted.append(torch.flatten(corrected_gradient.detach().clone()))
+                # save for 
+                gradients_without_error.append(torch.flatten(corrected_gradient.detach().clone()))
+
 
                 corrected_gradient = param_state['memory'] + corrected_gradient
 
+                # save gradient shape
                 gradient_shape.append(corrected_gradient.shape)
 
                 corrected_gradient = torch.flatten(corrected_gradient)
+
+
                 # abs_corrected_gradient = abs(corrected_gradient)
 
                 # d_p = p.grad.detach.clone()
@@ -96,10 +110,12 @@ class sparsetopSGD(Optimizer):
                 gradients.append(corrected_gradient)
 
             if len(gradients) > 0:
+                self.gradient_without_error = torch.cat(gradients_without_error, dim=0)
+
                 all_gradients = torch.cat(gradients, dim=0)
 
                 # self.raw_gradient = torch.cat(gradients_error_not_adjusted, dim=0)
-                # self.gradient_with_error = all_gradients.detach().clone()
+                self.gradient_before_topk = all_gradients.detach().clone()
 
                 abs_all_gradients = abs(all_gradients)
 
@@ -107,7 +123,7 @@ class sparsetopSGD(Optimizer):
 
                 all_gradients[indices] = 0
 
-                # self.topk_gradient_with_error = all_gradients.detach().clone()
+                self.gradient_after_topk = all_gradients.detach().clone()
 
                 sparsified_gradients = torch.split(all_gradients, param_size)
 

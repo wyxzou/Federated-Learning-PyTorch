@@ -69,5 +69,9 @@ def args_parser():
     parser.add_argument('--topk_d', type=float, default=0.001, help='downstream sparsity')
     parser.add_argument('--number', type=int, default=1, help='experiment number')
 
+    parser.add_argument('--measure_parameters', type=int, default=1, help='measure parameter values used in analysis')
+
+    parser.add_argument('--resume', type=int, default=0, help='resume training')
+
     args = parser.parse_args()
     return args
