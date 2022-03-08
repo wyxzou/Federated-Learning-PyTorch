@@ -5,6 +5,7 @@
 import copy
 import heapq
 import torch
+import pdb
 from torchvision import datasets, transforms
 from sampling import mnist_iid, mnist_noniid, mnist_noniid_unequal
 from sampling import cifar_iid, cifar_noniid
@@ -105,41 +106,42 @@ def average_weights(w):
     return w_avg
 
 
-def topk_weights(w, threshold):
+def topk_values(w, threshold, update_keys):
     """
     Returns topk weights.
     """
     sparse_w = copy.deepcopy(w)
 
     for key in sparse_w.keys():
-        # print("data type: ", sparse_w[key].dtype)
-        mask = (sparse_w[key] > threshold).float()
-        sparse_w[key] = torch.mul(mask, sparse_w[key])
+        if key in update_keys:
+            # print("data type: ", sparse_w[key].dtype)
+            mask = (torch.abs(sparse_w[key]) > threshold).float()
+            sparse_w[key] = torch.mul(mask, sparse_w[key])
 
     return sparse_w
 
 
-def subtract_weights(w1, w2):
+def subtract_values(w1, w2, update_keys):
     """
     Returns topk weights.
     """
     sum_w = copy.deepcopy(w1)
-
+    # pdb.set_trace()
     for key in sum_w.keys():
-        if key in w2:
+        if key in update_keys and key in w2:
             sum_w[key] -= w2[key]
 
     return sum_w
 
 
-def add_weights(w1, w2):
+def add_values(w1, w2, update_keys):
     """
     Returns topk weights.
     """
     sum_w = copy.deepcopy(w1)
 
     for key in sum_w.keys():
-        if key in w2:
+        if key in update_keys and key in w2:
             sum_w[key] += w2[key]
 
     return sum_w
@@ -151,32 +153,65 @@ def initialize_memory(w):
     mem = copy.deepcopy(w)
 
     for key in mem.keys():
-        mem[key] = 0
+        mem[key] = torch.zeros_like(w[key])
 
     return mem
 
 
-def get_weight_dimension(w):
+def get_weight_dimension(w, update_keys):
     dim = 0
     for key in w.keys():
-        dim += torch.numel(w[key])
+        if key in update_keys:
+            dim += torch.numel(w[key])
 
     return dim
 
 
-def get_topk_value(w, k):
+def get_topk_value(w, k, update_keys):
     w_copy = copy.deepcopy(w)
 
     tensors = []
     for key in w_copy.keys():
-        tensors.append(torch.flatten(w_copy[key]))    
+        if key in update_keys:
+            tensors.append(torch.flatten(w_copy[key]))    
+
+    combined_tensor = torch.abs(torch.cat(tensors))
+
+    topk_val = torch.topk(combined_tensor, k)[0]
+    # pdb.set_trace()
+    return topk_val[len(topk_val) - 1].item()
+
+
+def count_nonzero_dict(w, update_keys):
+    s = 0
+    for key in w.keys():
+        if key in update_keys:
+            s += torch.count_nonzero(w[key]).item()
+
+    return s
+
+# copy the non values from w2
+def update_non_keys(w1, w2, update_keys):
+    w_copy = copy.deepcopy(w1)
+
+    for key in w_copy.keys():
+        if not (key in update_keys):
+            w_copy[key] = w2[key]
+
+    return w_copy
+
+
+def get_gradient_from_dict(w, update_keys):
+    # pdb.set_trace()
+    w_copy = copy.deepcopy(w)
+    tensors = []
+    for key in w_copy.keys():
+        if key in update_keys:
+            tensors.append(torch.flatten(w_copy[key]))
 
     combined_tensor = torch.cat(tensors)
 
-    topk_val = torch.topk(combined_tensor, k)[0]
-
-    return topk_val[len(topk_val) - 1].item()
-
+    return combined_tensor
 
 def exp_details(args):
     print('\nExperimental details:')
