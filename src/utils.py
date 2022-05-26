@@ -79,6 +79,7 @@ def get_dataset(args):
 
 
         # sample training data amongst users
+        # fashion mnist and mnist have the same number of training samples
         if args.iid:
             # Sample IID user data from Mnist
             user_groups = mnist_iid(train_dataset, args.num_users)

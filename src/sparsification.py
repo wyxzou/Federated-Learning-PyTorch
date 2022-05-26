@@ -39,9 +39,11 @@ class sparsetopSGD(Optimizer):
                 param_state['memory'] = torch.zeros_like(p.data)
                 gradient_size += torch.numel(p.data)
 
+        self.iteration = 0
         self.gradient_after_topk = torch.zeros(gradient_size)
         self.gradient_before_topk = torch.zeros(gradient_size)
         self.gradient_without_error = torch.zeros(gradient_size)
+        self.error = torch.zeros(gradient_size)
 
     def __setstate__(self, state):
         super(sparsetopSGD, self).__setstate__(state)
@@ -75,10 +77,7 @@ class sparsetopSGD(Optimizer):
 
 
             gradients_without_error = []
-
-            # pdb.set_trace()
-            # print("parameter keys")
-            # print(group['params'])
+            errors = []
 
             for p in group['params']:   
 
@@ -95,16 +94,12 @@ class sparsetopSGD(Optimizer):
 
                 corrected_gradient = param_state['memory'] + corrected_gradient
 
+                errors.append( torch.flatten(param_state['memory'].detach().clone()) )
+
                 # save gradient shape
                 gradient_shape.append(corrected_gradient.shape)
 
                 corrected_gradient = torch.flatten(corrected_gradient)
-
-
-                # abs_corrected_gradient = abs(corrected_gradient)
-
-                # d_p = p.grad.detach.clone()
-                # d_p = torch.flatten(d_p)
 
                 param_size.append(corrected_gradient.size(dim=0))
                 gradients.append(corrected_gradient)
@@ -113,6 +108,7 @@ class sparsetopSGD(Optimizer):
                 self.gradient_without_error = torch.cat(gradients_without_error, dim=0)
 
                 all_gradients = torch.cat(gradients, dim=0)
+                self.error = torch.cat(errors, dim=0)
 
                 # self.raw_gradient = torch.cat(gradients_error_not_adjusted, dim=0)
                 self.gradient_before_topk = all_gradients.detach().clone()
@@ -143,37 +139,5 @@ class sparsetopSGD(Optimizer):
                 p.data.add_(sparsified_gradient, alpha=-1)
                 i += 1
 
-            # for p in group['params']:
-            #     param_state = self.state[p]
-            #     if p.grad is None:
-            #         continue
-
-            #     # self.sparsified_gradient[p] = 
-
-            #     d_p = p.grad
-            #     corrected_gradient = group['lr'] * d_p
-            #     corrected_gradient = param_state['memory'] + corrected_gradient
-            #     # initial = torch.clone(corrected_gradient).detach()
-
-            #     dpsize = corrected_gradient.shape
-                
-            #     corrected_gradient = torch.flatten(corrected_gradient)
-
-            #     abs_corrected_gradient = abs(corrected_gradient)
-            #     _, indices = torch.topk(abs_corrected_gradient, int( (1 - topk) * d_p.shape[0]), dim=0, largest=False)
-                
-            #     update = torch.clone(corrected_gradient).detach()
-                
-            #     update[indices] = 0
-
-            #     corrected_gradient = torch.reshape(corrected_gradient, dpsize)
-
-            #     # if not torch.allclose(corrected_gradient, initial):
-            #     #    print("Tensor not reshaped properly")
-
-            #     update = torch.reshape(update, dpsize)
-            #     param_state['memory'] = corrected_gradient - update
-
-            #     p.data.add_(corrected_gradient, alpha=-1)
-
+        self.iteration += 1 
         return loss

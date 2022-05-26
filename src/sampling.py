@@ -6,7 +6,6 @@
 import numpy as np
 from torchvision import datasets, transforms
 
-
 def mnist_iid(dataset, num_users):
     """
     Sample I.I.D. client data from MNIST dataset
@@ -150,6 +149,7 @@ def cifar_iid(dataset, num_users):
     :param num_users:
     :return: dict of image index
     """
+    np.random.seed(0)
     num_items = int(len(dataset)/num_users)
     dict_users, all_idxs = {}, [i for i in range(len(dataset))]
     for i in range(num_users):

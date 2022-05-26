@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Python version: 3.6
 
-from torch import nn
+from torch import nn, flatten
 import math
 import torch.nn.functional as F
 
@@ -49,23 +49,31 @@ class MLPFashion_Mnist(nn.Module):
         return out
 
 
+# https://github.com/pytorch/examples/blob/main/mnist/main.py
 class CNNMnist(nn.Module):
     def __init__(self, args):
         super(CNNMnist, self).__init__()
-        self.conv1 = nn.Conv2d(args.num_channels, 10, kernel_size=5)
-        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
-        self.conv2_drop = nn.Dropout2d()
-        self.fc1 = nn.Linear(320, 50)
-        self.fc2 = nn.Linear(50, args.num_classes)
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=3, stride=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1)
+        self.dropout1 = nn.Dropout(0.25)
+        self.dropout2 = nn.Dropout(0.25)
+        self.fc1 = nn.Linear(9216, 128)
+        self.fc2 = nn.Linear(128, 10)
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
-        x = x.view(-1, x.shape[1]*x.shape[2]*x.shape[3])
-        x = F.relu(self.fc1(x))
-        x = F.dropout(x, training=self.training)
+        x = self.conv1(x)
+        x = F.relu(x)
+        x = self.conv2(x)
+        x = F.relu(x)
+        x = F.max_pool2d(x, 2)
+        x = self.dropout1(x)
+        x = flatten(x, 1)
+        x = self.fc1(x)
+        x = F.relu(x)
+        x = self.dropout2(x)
         x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
+        output = F.log_softmax(x, dim=1)
+        return output
 
 
 class CNNFashion_Mnist(nn.Module):
@@ -113,7 +121,7 @@ class CNNCifar(nn.Module):
         return F.log_softmax(x, dim=1)
 
 
-
+# https://www.kaggle.com/pankajj/fashion-mnist-with-pytorch-93-accuracy
 class FashionCNN(nn.Module):
     def __init__(self):
         super(FashionCNN, self).__init__()

@@ -71,7 +71,10 @@ def args_parser():
 
     parser.add_argument('--measure_parameters', type=int, default=1, help='measure parameter values used in analysis')
 
+    parser.add_argument('--validation', type=int, default=1, help='use validation set')
+
     parser.add_argument('--resume', type=int, default=0, help='resume training')
+    parser.add_argument('--save', type=int, default=0, help='save model after every epoch')
 
     args = parser.parse_args()
     return args

@@ -22,8 +22,8 @@ class DatasetSplit(Dataset):
 
     def __getitem__(self, item):
         image, label = self.dataset[self.idxs[item]]
-        image_tensor = torch.tensor(image)
-        label_tensor = torch.tensor(label)
+        # image_tensor = torch.tensor(image)
+        # label_tensor = torch.tensor(label)
         # print("image type: ", image_tensor.dtype)
         # print("label type: ", label_tensor.dtype)
         return torch.tensor(image), torch.tensor(label)
@@ -34,7 +34,7 @@ class LocalUpdate(object):
         self.args = args
         self.logger = logger
         # print("train val test started")
-        self.trainloader, self.validloader, self.testloader = self.train_val_test(
+        self.trainloader, self.validloader, self.trainindices, self.validindices = self.train_val_test(
             dataset, list(idxs))
         # print("train val test complete")
         self.device = 'cuda' if args.gpu else 'cpu'
@@ -47,7 +47,6 @@ class LocalUpdate(object):
 
         self.num_labels = [0] * 10
         self.iterable_trainloader = iter(self.trainloader)
-        # print("Finished initialization")
 
     # def check_mnist_labels(self):
     #    return self.num_labels
@@ -62,19 +61,23 @@ class LocalUpdate(object):
         """
         # split indexes for train, validation, and test (80, 10, 10)
         # print("Starting train val test")
-        idxs_train = idxs[:int(0.8*len(idxs))]
-        idxs_val = idxs[int(0.8*len(idxs)):int(0.9*len(idxs))]
-        idxs_test = idxs[int(0.9*len(idxs)):]
+        if self.args.validation == 1:
+            idxs_train = idxs[:int(0.8*len(idxs))]
+        else:
+            idxs_train = idxs[:len(idxs)]
+        idxs_val = idxs[int(0.8*len(idxs)):]
+        # idxs_test = idxs[int(0.9*len(idxs)):]
 
         trainloader = DataLoader(DatasetSplit(dataset, idxs_train),
                                  batch_size=self.args.local_bs, shuffle=True)
         validloader = DataLoader(DatasetSplit(dataset, idxs_val),
                                  batch_size=int(len(idxs_val)/10), shuffle=False)
-        testloader = DataLoader(DatasetSplit(dataset, idxs_test),
-                                batch_size=int(len(idxs_test)/10), shuffle=False)
+        # testloader = DataLoader(DatasetSplit(dataset, idxs_test),
+        #                        batch_size=int(len(idxs_test)/10), shuffle=False)
         # print("Data Loader complete")
-        return trainloader, validloader, testloader
+        return trainloader, validloader, idxs_train, idxs_val
 
+    # https://stackoverflow.com/questions/54053868/how-do-i-get-a-loss-per-epoch-and-not-per-batch
     def update_weights(self, model, global_round):
         # Set mode to train model
         model.train()
@@ -188,7 +191,7 @@ class LocalUpdate(object):
         model.eval()
         loss, total, correct = 0.0, 0.0, 0.0
 
-        for batch_idx, (images, labels) in enumerate(self.testloader):
+        for batch_idx, (images, labels) in enumerate(self.validloader):
             images, labels = images.to(self.device), labels.to(self.device)
 
             # Inference
