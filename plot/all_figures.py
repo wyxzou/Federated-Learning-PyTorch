@@ -7,6 +7,8 @@ from matplotlib.pyplot import figure
 from retrieval import get_xi_values, get_side_values, get_side_values_batches, get_model_results, get_values, get_distance, batch_to_epoch_avg
 
 
+save = "check"
+
 def compare_side_by_side(x, files, savefile):
     fig = plt.figure(constrained_layout=True, figsize=(5,7))
     fig.supylabel('Magnitude')
@@ -33,7 +35,7 @@ def compare_side_by_side(x, files, savefile):
             handles, labels = ax.get_legend_handles_labels()
 
     fig.legend(handles, labels, loc='upper center')
-    savedirectory = "../save/thesis_plots/"
+    savedirectory = "../save/" + save + "/"
     plt.savefig(savedirectory + savefile + ".pdf")
 
 def plot_subplot(ax, x, y, title, legend_labels):
@@ -76,12 +78,11 @@ def plot_compression_vgg():
 
 
     savefile = "compression_vgg"
-    savedirectory = "../save/thesis_plots/vgg/"
+
+    savedirectory = "../save/" + save + "/vgg/"
 
 
-    plot_graphs_wo_legend([list(range(1, 201))], results, "", "Epoch", "%", savedirectory + savefile, rotation=0)
-
-
+    plot_graphs_wo_legend([list(range(1, 201))], results, "", "Epoch", "", savedirectory + savefile, rotation=0)
 
 
 
@@ -107,11 +108,8 @@ def comparison_between_workers_without_comparison(x, y, xlabel, ylabel, savefile
 
     fig.text(-0.01, 0.5, ylabel, va='center', rotation=rotation)
     fig.tight_layout() 
-    # handles, labels = axs[1, 1].get_legend_handles_labels()
 
-    # fig.legend(handles, labels, loc='upper center')
-
-    savedirectory = "../save/thesis_plots/"
+    savedirectory = "../save/" + save + "/"
     # plt.show()
     plt.savefig(savedirectory + savefile + ".pdf", bbox_inches='tight')
 
@@ -136,7 +134,7 @@ def comparison_between_workers(x, y1, y2, y3, ylabel, savefile, sgd=0, rotation=
     fig.subplots_adjust(bottom=0.2)
     fig.legend(handles, labels, bbox_to_anchor=(middle, 0.001), ncol=3)
 
-    savedirectory = "../save/thesis_plots/"
+    savedirectory = "../save/" + save + "/"
 
     plt.savefig(savedirectory + savefile + ".pdf", bbox_inches='tight')
 
@@ -233,7 +231,7 @@ def plot_compression():
     iteration, mnist_100_workers = get_values([0.17, 0.24], num_users=100, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, numbers = [2], index=5)
     avg_100 = batch_to_epoch_avg(mnist_100_workers[0], 60)
     results.append(np.array(avg_100)/mnist_mlp_size)
-    comparison_between_workers_without_comparison(list(range(1, 101)), results, "Epoch", "%", "mnist_mlp_compression_upstream", rotation=0)
+    comparison_between_workers_without_comparison(list(range(1, 101)), results, "Epoch", "", "mnist_mlp_compression_upstream", rotation=0)
 
     
     mnist_mlp_size = 1199882
@@ -252,7 +250,7 @@ def plot_compression():
     avg_100 = batch_to_epoch_avg(mnist_100_workers[0], 60)
     results.append(np.array(avg_100)/mnist_mlp_size)
     # pdb.set_trace()
-    comparison_between_workers_without_comparison(list(range(1, 101)), results, "Epoch", "%", "mnist_cnn_compression_upstream", rotation=0)
+    comparison_between_workers_without_comparison(list(range(1, 101)), results, "Epoch", "", "mnist_cnn_compression_upstream", rotation=0)
 
 
     mnist_mlp_size = 242762
@@ -271,7 +269,7 @@ def plot_compression():
     avg_100 = batch_to_epoch_avg(mnist_100_workers[0], 60)
     results.append(np.array(avg_100)/mnist_mlp_size)
 
-    comparison_between_workers_without_comparison(list(range(1, 101)), results, "Epoch", "%", "fmnist_mlp_compression_upstream", rotation=0)
+    comparison_between_workers_without_comparison(list(range(1, 101)), results, "Epoch", "", "fmnist_mlp_compression_upstream", rotation=0)
 
 
 
@@ -289,7 +287,7 @@ def plot_compression():
     iteration, mnist_100_workers = get_values([0.14, 0.2], num_users=100, epochs=100, model = "cnn", dataset = "fmnist", local_bs=10, numbers = [1], index=5)
     avg_100 = batch_to_epoch_avg(mnist_100_workers[0], 60)
     results.append(np.array(avg_100)/mnist_mlp_size)
-    comparison_between_workers_without_comparison(list(range(1, 101)), results, "Epoch", "%", "fmnist_cnn_compression_upstream", rotation=0)
+    comparison_between_workers_without_comparison(list(range(1, 101)), results, "Epoch", "", "fmnist_cnn_compression_upstream", rotation=0)
 
 
 def plot_rho():
@@ -298,7 +296,7 @@ def plot_rho():
     _, fmnist_100_workers = get_xi_values([0.22, 0.22], num_users=100, epochs=100, model = "mlp", dataset = "fmnist",  numbers=[2])
 
     xlabel = list(range(1, epochs + 1))
-    comparison_between_workers(xlabel, fmnist_20_workers, fmnist_50_workers, fmnist_100_workers, r"$\^\rho$", "fmnist_mlp_rho", rotation=0, middle=0.7)
+    comparison_between_workers(xlabel, fmnist_20_workers, fmnist_50_workers, fmnist_100_workers, "", "fmnist_mlp_rho", rotation=0, middle=0.7)
 
 
 
@@ -307,7 +305,7 @@ def plot_rho():
     _, fmnist_100_workers = get_xi_values([0.14, 0.2], num_users=100, epochs=100, model = "cnn", dataset = "fmnist", numbers=[1])
 
     xlabel = list(range(1, epochs + 1))
-    comparison_between_workers(xlabel, fmnist_20_workers, fmnist_50_workers, fmnist_100_workers, r"$\^\rho$", "fmnist_cnn_rho", rotation=0, middle=0.7)
+    comparison_between_workers(xlabel, fmnist_20_workers, fmnist_50_workers, fmnist_100_workers, "", "fmnist_cnn_rho", rotation=0, middle=0.7)
 
 
 
@@ -317,7 +315,7 @@ def plot_rho():
     _, mnist_100_workers = get_xi_values([0.17, 0.24], num_users=100, epochs=100, model = "mlp", dataset = "mnist", numbers=[2])
 
     xlabel = list(range(1, epochs + 1))
-    comparison_between_workers(xlabel, mnist_20_workers, mnist_50_workers, mnist_100_workers, r"$\^\rho$", "mnist_mlp_rho", rotation=0, middle=0.7)
+    comparison_between_workers(xlabel, mnist_20_workers, mnist_50_workers, mnist_100_workers, "", "mnist_mlp_rho", rotation=0, middle=0.7)
 
 
     _, mnist_20_workers = get_xi_values([0.08, 0.09], num_users=20, epochs=100, model = "cnn", dataset = "mnist", numbers=[2])
@@ -326,7 +324,7 @@ def plot_rho():
 
 
     xlabel = list(range(1, epochs + 1))
-    comparison_between_workers(xlabel, mnist_20_workers, mnist_50_workers, mnist_100_workers, r"$\^\rho$", "mnist_cnn_rho")
+    comparison_between_workers(xlabel, mnist_20_workers, mnist_50_workers, mnist_100_workers, "", "mnist_cnn_rho")
 
 
 
@@ -415,7 +413,7 @@ def plot_rho_sides():
 def compare_delta_values(x, files, savefile):
     fig = plt.figure(constrained_layout=True, figsize=(5,8))
     # fig.suptitle(figure_title)
-    fig.supylabel(r"$1 - \^\gamma$", rotation=90)
+    fig.supylabel(r"$1 - \gamma$", rotation=90)
     fig.supxlabel('Epoch')
     worker = [20, 50, 100]
     # create 3x1 subfigs
@@ -446,7 +444,7 @@ def compare_delta_values(x, files, savefile):
             handles, labels = ax.get_legend_handles_labels()
 
     fig.legend(handles, labels, loc='upper center')
-    savedirectory = "../save/thesis_plots/"
+    savedirectory = "../save/" + save + "/"
     # plt.show()
     plt.savefig(savedirectory + savefile + ".pdf")
 
@@ -456,20 +454,20 @@ def plot_gamma_values():
 
     epochs, fmnist_20_workers_u = get_xi_values([0.08, 0.08], num_users=20, epochs=100, model = "mlp", dataset = "fmnist", local_bs=10, numbers = [1], index=7)
     epochs, fmnist_20_workers_d = get_xi_values([0.08, 0.08], num_users=20, epochs=100, model = "mlp", dataset = "fmnist", local_bs=10, numbers = [1], index=8)
-    files.append([fmnist_20_workers_u[0], fmnist_20_workers_u[1], fmnist_20_workers_d[1]])
+    files.append([fmnist_20_workers_u[0][1:100], fmnist_20_workers_u[1][1:100], fmnist_20_workers_d[1][1:100]])
 
 
     epochs, fmnist_50_workers_u = get_xi_values([0.13, 0.12], num_users=50, epochs=100, model = "mlp", dataset = "fmnist", local_bs=10, numbers = [1], index=7)
     epochs, fmnist_50_workers_d = get_xi_values([0.13, 0.12], num_users=50, epochs=100, model = "mlp", dataset = "fmnist", local_bs=10, numbers = [1], index=8)
-    files.append([fmnist_50_workers_u[0], fmnist_50_workers_u[1], fmnist_50_workers_d[1]])
+    files.append([fmnist_50_workers_u[0][1:100], fmnist_50_workers_u[1][1:100], fmnist_50_workers_d[1][1:100]])
 
 
     epochs, fmnist_100_workers_u = get_xi_values([0.22, 0.22], num_users=100, epochs=100, model = "mlp", dataset = "fmnist", local_bs=10, numbers = [1], index=7)
     epochs, fmnist_100_workers_d = get_xi_values([0.22, 0.22], num_users=100, epochs=100, model = "mlp", dataset = "fmnist", local_bs=10, numbers = [1], index=8)
-    files.append([fmnist_100_workers_u[0], fmnist_100_workers_u[1], fmnist_100_workers_d[1]])
+    files.append([fmnist_100_workers_u[0][1:100], fmnist_100_workers_u[1][1:100], fmnist_100_workers_d[1][1:100]])
 
 
-    xlabel = list(range(1, 101))
+    xlabel = list(range(1, 100))
     compare_delta_values(xlabel, files, "fmnist_mlp_delta_values")
 
 
@@ -477,42 +475,40 @@ def plot_gamma_values():
 
     epochs, fmnist_20_workers_u = get_xi_values([0.06, 0.09], num_users=20, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, numbers = [2], index=7)
     epochs, fmnist_20_workers_d = get_xi_values([0.06, 0.09], num_users=20, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, numbers = [2], index=8)
-    files.append([fmnist_20_workers_u[0], fmnist_20_workers_u[1], fmnist_20_workers_d[1]])
+    files.append([fmnist_20_workers_u[0][1:100], fmnist_20_workers_u[1][1:100], fmnist_20_workers_d[1][1:100]])
 
 
     epochs, fmnist_50_workers_u = get_xi_values([0.17, 0.18], num_users=50, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, numbers = [2], index=7)
     epochs, fmnist_50_workers_d = get_xi_values([0.17, 0.18], num_users=50, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, numbers = [2], index=8)
-    files.append([fmnist_50_workers_u[0], fmnist_50_workers_u[1], fmnist_50_workers_d[1]])
+    files.append([fmnist_50_workers_u[0][1:100], fmnist_50_workers_u[1][1:100], fmnist_50_workers_d[1][1:100]])
 
 
     epochs, fmnist_100_workers_u = get_xi_values([0.17, 0.24], num_users=100, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, numbers = [2], index=7)
     epochs, fmnist_100_workers_d = get_xi_values([0.17, 0.24], num_users=100, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, numbers = [2], index=8)
-    files.append([fmnist_100_workers_u[0], fmnist_100_workers_u[1], fmnist_100_workers_d[1]])
-    xlabel = list(range(1, 100 + 1))
+    files.append([fmnist_100_workers_u[0][1:100], fmnist_100_workers_u[1][1:100], fmnist_100_workers_d[1][1:100]])
+    xlabel = list(range(1, 100))
     compare_delta_values(xlabel, files, "mnist_mlp_delta_values")
 
 
     files = []
     epochs, fmnist_20_workers_u = get_xi_values([0.08, 0.09], num_users=20, epochs=100, model = "cnn", dataset = "mnist", local_bs=10, numbers = [2], index=7)
     epochs, fmnist_20_workers_d = get_xi_values([0.08, 0.09], num_users=20, epochs=100, model = "cnn", dataset = "mnist", local_bs=10, numbers = [2], index=8)
-    files.append([fmnist_20_workers_u[0], fmnist_20_workers_u[1], fmnist_20_workers_d[1]])
+    files.append([fmnist_20_workers_u[0][1:100], fmnist_20_workers_u[1][1:100], fmnist_20_workers_d[1][1:100]])
 
 
     epochs, fmnist_50_workers_u = get_xi_values([0.14, 0.16], num_users=50, epochs=100, model = "cnn", dataset = "mnist", local_bs=10, numbers = [2], index=7)
     epochs, fmnist_50_workers_d = get_xi_values([0.14, 0.16], num_users=50, epochs=100, model = "cnn", dataset = "mnist", local_bs=10, numbers = [2], index=8)
-    files.append([fmnist_50_workers_u[0], fmnist_50_workers_u[1], fmnist_50_workers_d[1]])
+    files.append([fmnist_50_workers_u[0][1:100], fmnist_50_workers_u[1][1:100], fmnist_50_workers_d[1][1:100]])
 
 
     epochs, fmnist_100_workers_u = get_xi_values([0.09, 0.16], num_users=100, epochs=100, model = "cnn", dataset = "mnist", local_bs=10, numbers = [2], index=7)
     epochs, fmnist_100_workers_d = get_xi_values([0.09, 0.16], num_users=100, epochs=100, model = "cnn", dataset = "mnist", local_bs=10, numbers = [2], index=8)
-    files.append([fmnist_100_workers_u[0], fmnist_100_workers_u[1], fmnist_100_workers_d[1]])
-    xlabel = list(range(1, 100 + 1))
+    files.append([fmnist_100_workers_u[0][1:100], fmnist_100_workers_u[1][1:100], fmnist_100_workers_d[1][1:100]])
+    xlabel = list(range(1, 100 ))
     compare_delta_values(xlabel, files, "mnist_cnn_delta_values")
 
 
-
     files = []
-
     epochs, fmnist_20_workers_u = get_xi_values([0.09, 0.08], num_users=20, epochs=100, model = "cnn", dataset = "fmnist", local_bs=10, numbers = [1], index=7)
     epochs, fmnist_20_workers_d = get_xi_values([0.09, 0.08], num_users=20, epochs=100, model = "cnn", dataset = "fmnist", local_bs=10, numbers = [1], index=8)
     files.append([fmnist_20_workers_u[0][1:100], fmnist_20_workers_u[1][1:100], fmnist_20_workers_d[1][1:100]])
@@ -528,8 +524,6 @@ def plot_gamma_values():
     files.append([fmnist_100_workers_u[0][1:100], fmnist_100_workers_u[1][1:100], fmnist_100_workers_d[1][1:100]])
     xlabel = list(range(1, 100))
     compare_delta_values(xlabel, files, "fmnist_cnn_delta_values")
-
-
 
 
 if __name__ ==  "__main__":

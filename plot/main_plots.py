@@ -3,7 +3,7 @@ import pickle
 import numpy as np
 import matplotlib.pyplot as plt
 
-from retrieval import get_xi_values, get_side_values, get_side_values_batches, get_values
+from retrieval import get_side_values, get_side_values_batches, get_values, get_downlink
 
 
 def plot_graphs(x, y, title, xlabel, ylabel, legend_labels, savefile, rotation=90):
@@ -234,10 +234,10 @@ def plot_adjusted_values(lrs, num_users=20, epochs=100, model = "mlp", dataset =
 
     savefile = '../save/plots/tuning/{}/'.format(dataset) + filename
 
-    plot_graphs([list(range(batches))] * 2, all_experiments, title, "Epoch", r"$\rho$", ["unidirectional", "bidirectional"], savefile)
+    plot_graphs([list(range(batches))] * 2, all_experiments, title, "Epoch", "", ["unidirectional", "bidirectional"], savefile)
 
 
-def plot_xi_values(lrs, num_users=20, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, rotation=0):
+def plot_xi_values(lrs, num_users=20, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, rotation=0, directory="thesis_plots"):
     frac = "1.0"
     iid = 1
     topk = 0.001
@@ -282,49 +282,49 @@ def plot_xi_values(lrs, num_users=20, epochs=100, model = "mlp", dataset = "mnis
     title = "Number of Workers: " + str(num_users)
     filename = "rho_comparison_" + dataset + "_" + model + "_" + str(num_users) + "_" + str(local_bs)
 
-    savefile = '../save/thesis_plots/' + filename
+    savefile = '../save/' + directory + '/' + filename
 
-    plot_graphs([list(range(batches))] * 2, all_experiments, "", "Epoch", r"$\rho$", ["unidirectional", "bidirectional"], savefile, rotation=rotation)
+    plot_graphs([list(range(batches))] * 2, all_experiments, "", "Epoch", "", ["unidirectional", "bidirectional"], savefile, rotation=rotation)
 
 
 
-def get_xi_values(lrs, num_users=20, epochs=100, model = "mlp", dataset = "mnist", local_bs=10):
-    frac = "1.0"
-    iid = 1
-    topk = 0.001
-    topk_d = 0.001
+# def get_xi_values(lrs, num_users=20, epochs=100, model = "mlp", dataset = "mnist", local_bs=10):
+#     frac = "1.0"
+#     iid = 1
+#     topk = 0.001
+#     topk_d = 0.001
 
-    all_experiments = []
-    experiments = []
-    for number in [1]:
-        file_name = '../save/{}-{}/{}_{}_EPOCH[{}]_USERS[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_LR[{}]_DIR[{}]_TOPK[{}]_TOPKD[{}]_NUM[{}].pkl' \
-                .format(dataset, model, dataset, model, epochs, num_users, frac, iid,
-                    local_bs, "sparsetopk", lrs[0], 0, topk, topk_d, number)
+#     all_experiments = []
+#     experiments = []
+#     for number in [1]:
+#         file_name = '../save/{}-{}/{}_{}_EPOCH[{}]_USERS[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_LR[{}]_DIR[{}]_TOPK[{}]_TOPKD[{}]_NUM[{}].pkl' \
+#                 .format(dataset, model, dataset, model, epochs, num_users, frac, iid,
+#                     local_bs, "sparsetopk", lrs[0], 0, topk, topk_d, number)
 
-        with open(file_name, 'rb') as pickle_file:
-            experiments.append(pickle.load(pickle_file))
-    xi_values = np.mean(np.array(experiments)[:, 4], axis=0)
-    d = len(xi_values) // 100
-    xi_values = batch_to_epoch(xi_values, d)
-    all_experiments.append(xi_values)
+#         with open(file_name, 'rb') as pickle_file:
+#             experiments.append(pickle.load(pickle_file))
+#     xi_values = np.mean(np.array(experiments)[:, 4], axis=0)
+#     d = len(xi_values) // 100
+#     xi_values = batch_to_epoch(xi_values, d)
+#     all_experiments.append(xi_values)
 
-    experiments = []
-    for number in [1]:
-        file_name = '../save/{}-{}/{}_{}_EPOCH[{}]_USERS[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_LR[{}]_DIR[{}]_TOPK[{}]_TOPKD[{}]_NUM[{}].pkl' \
-                .format(dataset, model, dataset, model, epochs, num_users, frac, iid,
-                    local_bs, "sparsetopk", lrs[1], 1, topk, topk_d, number)
+#     experiments = []
+#     for number in [1]:
+#         file_name = '../save/{}-{}/{}_{}_EPOCH[{}]_USERS[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_LR[{}]_DIR[{}]_TOPK[{}]_TOPKD[{}]_NUM[{}].pkl' \
+#                 .format(dataset, model, dataset, model, epochs, num_users, frac, iid,
+#                     local_bs, "sparsetopk", lrs[1], 1, topk, topk_d, number)
 
-        with open(file_name, 'rb') as pickle_file:
-            experiments.append(pickle.load(pickle_file))
+#         with open(file_name, 'rb') as pickle_file:
+#             experiments.append(pickle.load(pickle_file))
 
-    xi_values = np.mean(np.array(experiments)[:, 4], axis=0)
-    d = len(xi_values) // 100
-    xi_values = batch_to_epoch(xi_values, d)
-    all_experiments.append(xi_values)
+#     xi_values = np.mean(np.array(experiments)[:, 4], axis=0)
+#     d = len(xi_values) // 100
+#     xi_values = batch_to_epoch(xi_values, d)
+#     all_experiments.append(xi_values)
 
-    epochs = len(all_experiments[0])
+#     epochs = len(all_experiments[0])
 
-    return epochs, all_experiments
+#     return epochs, all_experiments
 
 
 def plot_compression_vgg():
@@ -341,7 +341,7 @@ def plot_compression_vgg():
 
 
 
-    plot_graphs_wo_legend([list(range(len(mnist_10_workers[0])))], results, "", "Iteration", "%", savedirectory + savefile)
+    plot_graphs_wo_legend([list(range(len(mnist_10_workers[0])))], results, "", "Iteration", "", savedirectory + savefile)
 
 
 
@@ -362,7 +362,6 @@ def comparison_without_sgd(num_users, lrs, model="mlp", dataset = "mnist", epoch
         with open(file_name, 'rb') as pickle_file:
             experiments.append(pickle.load(pickle_file)[index_comparison])
 
-    # pdb.set_trace()
     all_experiments.append(np.average(np.array(experiments), axis=0))
 
     experiments = []
@@ -383,25 +382,50 @@ def comparison_without_sgd(num_users, lrs, model="mlp", dataset = "mnist", epoch
 
 
 
+def check_file(num_users, lrs, model="mlp", dataset = "mnist", epochs=100, local_bs=10, index_comparison=3, ylabel="Loss", iid=1, nums=[1]):
+    frac = "1.0"
+    topk = 0.001
+    topk_d = 0.001
+
+    all_experiments = []
+
+    experiments = []
+    for num in nums:
+        file_name = '../save/{}-{}/{}_{}_EPOCH[{}]_USERS[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_LR[{}]_DIR[{}]_TOPK[{}]_TOPKD[{}]_NUM[{}].pkl' \
+                .format(dataset, model, dataset, model, epochs, num_users, frac, iid,
+                    local_bs, "sparsetopk", lrs[0], 0, topk, topk_d, num)
+
+        with open(file_name, 'rb') as pickle_file:
+            experiments.append(pickle.load(pickle_file)[index_comparison])
+
+    all_experiments.append(np.average(np.array(experiments), axis=0))
+    pdb.set_trace()
+
+
+
 if __name__ == "__main__": 
-    plot_xi_values([0.05, 0.05], num_users=20, epochs=200, model = "vgg", dataset = "cifar", local_bs=100, rotation=0)
-    plot_xi_values([0.14, 0.2], num_users=100, epochs=100, model = "cnn", dataset = "fmnist", local_bs=10, rotation=0)
-    plot_xi_values([0.13, 0.12], num_users=50, epochs=100, model = "mlp", dataset = "fmnist",  local_bs=10, rotation=0)
-    plot_xi_values([0.22, 0.22], num_users=100, epochs=100, model = "mlp", dataset = "fmnist",  local_bs=10, rotation=0)
+    directory = 'check'
+    plot_xi_values([0.05, 0.05], num_users=20, epochs=200, model = "vgg", dataset = "cifar", local_bs=100, rotation=0, directory=directory)
+    plot_xi_values([0.14, 0.2], num_users=100, epochs=100, model = "cnn", dataset = "fmnist", local_bs=10, rotation=0, directory=directory)
+    plot_xi_values([0.13, 0.12], num_users=50, epochs=100, model = "mlp", dataset = "fmnist",  local_bs=10, rotation=0, directory=directory)
+    plot_xi_values([0.22, 0.22], num_users=100, epochs=100, model = "mlp", dataset = "fmnist",  local_bs=10, rotation=0, directory=directory)
 
 
-    comparison(20, [0.1, 0.1, 0.05], model="vgg", dataset="cifar", epochs=200, local_bs=100, ylabel="Accuracy", savedirectory= "../save/thesis_plots")
-    comparison(20, [0.1, 0.1, 0.05], model="vgg", dataset="cifar", epochs=200, local_bs=100, ylabel="Loss", index_comparison=0, savedirectory= "../save/thesis_plots")
+   
+    comparison(20, [0.1, 0.1, 0.05], model="vgg", dataset="cifar", epochs=200, local_bs=100, ylabel="Accuracy", savedirectory= "../save/" + directory)
+    comparison(20, [0.1, 0.1, 0.05], model="vgg", dataset="cifar", epochs=200, local_bs=100, ylabel="Loss", index_comparison=0, savedirectory= "../save/" + directory)
 
-    comparison(100, [0.14, 0.20, 0.08], epochs=100, model = "cnn", dataset = "fmnist", index_comparison=0, ylabel="Loss", savedirectory= "../save/thesis_plots")
-    comparison(100, [0.14, 0.20, 0.08], epochs=100, model = "cnn", dataset = "fmnist", index_comparison=3, ylabel="Accuracy", savedirectory= "../save/thesis_plots")
+    comparison(100, [0.14, 0.20, 0.08], epochs=100, model = "cnn", dataset = "fmnist", index_comparison=0, ylabel="Loss", savedirectory= "../save/" + directory)
+    comparison(100, [0.14, 0.20, 0.08], epochs=100, model = "cnn", dataset = "fmnist", index_comparison=3, ylabel="Accuracy", savedirectory= "../save/" + directory)
 
-    comparison(50, [0.13, 0.12, 0.07], epochs=100, model = "mlp", dataset = "fmnist", index_comparison=3, ylabel="Accuracy", savedirectory= "../save/thesis_plots")
-    comparison(50, [0.13, 0.12, 0.07], epochs=100, model = "mlp", dataset = "fmnist", index_comparison=0, ylabel="Loss", savedirectory= "../save/thesis_plots")
+    comparison(50, [0.13, 0.12, 0.07], epochs=100, model = "mlp", dataset = "fmnist", index_comparison=3, ylabel="Accuracy", savedirectory= "../save/" + directory)
+    comparison(50, [0.13, 0.12, 0.07], epochs=100, model = "mlp", dataset = "fmnist", index_comparison=0, ylabel="Loss", savedirectory= "../save/" + directory)
 
-    comparison(100, [0.22, 0.22, 0.08], epochs=100, model = "mlp", dataset = "fmnist", index_comparison=3, ylabel="Accuracy", savedirectory= "../save/thesis_plots")
-    comparison(100, [0.22, 0.22, 0.08], epochs=100, model = "mlp", dataset = "fmnist", index_comparison=0, ylabel="Loss", savedirectory= "../save/thesis_plots")
+    comparison(100, [0.22, 0.22, 0.08], epochs=100, model = "mlp", dataset = "fmnist", index_comparison=3, ylabel="Accuracy", savedirectory= "../save/" + directory)
+    comparison(100, [0.22, 0.22, 0.08], epochs=100, model = "mlp", dataset = "fmnist", index_comparison=0, ylabel="Loss", savedirectory= "../save/" + directory)
 
 
 
+    # v, xi = get_downlink([0.14, 0.2], num_users=100, epochs=100, model = "cnn", dataset = "fmnist", numbers=[1], index=4, directory="/Users/williamzou")
+    # pdb.set_trace()
 

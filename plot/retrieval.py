@@ -90,7 +90,7 @@ def get_values(lrs, num_users=20, epochs=100, model = "mlp", dataset = "mnist", 
 
 
 
-def get_downlink(lrs, num_users=20, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, numbers = [1], index=4, ignore_first=False, topk_d=0.001):
+def get_downlink(lrs, num_users=20, epochs=100, model = "mlp", dataset = "mnist", local_bs=10, numbers = [1], index=4, ignore_first=False, topk_d=0.001, directory=".."):
     frac = "1.0"
     iid = 1
     topk = 0.001
@@ -98,8 +98,8 @@ def get_downlink(lrs, num_users=20, epochs=100, model = "mlp", dataset = "mnist"
 
     experiments = []
     for number in numbers:
-        file_name = '../save/{}-{}/{}_{}_EPOCH[{}]_USERS[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_LR[{}]_DIR[{}]_TOPK[{}]_TOPKD[{}]_NUM[{}].pkl' \
-                .format(dataset, model, dataset, model, epochs, num_users, frac, iid,
+        file_name = '{}/save/{}-{}/{}_{}_EPOCH[{}]_USERS[{}]_C[{}]_iid[{}]_B[{}]_OPT[{}]_LR[{}]_DIR[{}]_TOPK[{}]_TOPKD[{}]_NUM[{}].pkl' \
+                .format(directory, dataset, model, dataset, model, epochs, num_users, frac, iid,
                     local_bs, "sparsetopk", lrs[1], 1, topk, topk_d, number)
 
         with open(file_name, 'rb') as pickle_file:
